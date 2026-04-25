@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "nextjs": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "d3a48eada4dbae95856d643a0c9c54a38974ee7896a4d34f93aead13d26c343a"
+    },
+    "tailwind-best-practices": {
+      "source": "mastra-ai/mastra",
+      "sourceType": "github",
+      "computedHash": "7a94bb24f938aec684feaf5d93e862bc3c854d86d7d7d472293be793a2f4bda2"
+    },
+    "tailwind-components": {
+      "source": "thebushidocollective/han",
+      "sourceType": "github",
+      "computedHash": "b1cd83d7e406958d066887d76edb32bc6c9b4f5f29dfb3e548358d5af89adc61"
+    }
+  }
+}
