@@ -13,6 +13,7 @@ export function VehiclesTable() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'resident' | 'visitor'>('all');
   const [showModal, setShowModal] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [formData, setFormData] = useState({
@@ -42,11 +43,16 @@ export function VehiclesTable() {
     }
   };
 
-  const filteredVehicles = vehicles.filter(
-    (v) =>
+  const filteredVehicles = vehicles.filter((v) => {
+    const matchesSearch =
       v.plate.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.owner_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      v.owner_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter =
+      filterType === 'all' ||
+      (filterType === 'resident' && v.is_resident) ||
+      (filterType === 'visitor' && !v.is_resident);
+    return matchesSearch && matchesFilter;
+  });
 
   const handleOpenModal = (vehicle?: Vehicle) => {
     if (vehicle) {
@@ -132,8 +138,50 @@ export function VehiclesTable() {
     label,
   }));
 
+  const stats = {
+    total: vehicles.length,
+    residents: vehicles.filter((v) => v.is_resident).length,
+    visitors: vehicles.filter((v) => !v.is_resident).length,
+  };
+
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="h-10 w-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+              <Car className="h-5 w-5 text-blue-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.total}</p>
+              <p className="text-xs text-muted-foreground">Total Vehículos</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="h-10 w-10 rounded-lg bg-success/20 flex items-center justify-center">
+              <Car className="h-5 w-5 text-success" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.residents}</p>
+              <p className="text-xs text-muted-foreground">Residentes</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+              <Car className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.visitors}</p>
+              <p className="text-xs text-muted-foreground">Visitantes</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -148,8 +196,8 @@ export function VehiclesTable() {
           )}
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por placa o propietario..."
@@ -157,6 +205,29 @@ export function VehiclesTable() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={filterType === 'all' ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setFilterType('all')}
+              >
+                Todos ({stats.total})
+              </Button>
+              <Button
+                variant={filterType === 'resident' ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setFilterType('resident')}
+              >
+                Residentes ({stats.residents})
+              </Button>
+              <Button
+                variant={filterType === 'visitor' ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setFilterType('visitor')}
+              >
+                Visitantes ({stats.visitors})
+              </Button>
             </div>
           </div>
 
@@ -298,15 +369,21 @@ export function VehiclesTable() {
                 onChange={(e) => setFormData({ ...formData, owner_email: e.target.value })}
               />
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="is_resident"
-                  checked={formData.is_resident}
-                  onChange={(e) => setFormData({ ...formData, is_resident: e.target.checked })}
-                  className="h-4 w-4"
-                />
-                <label htmlFor="is_resident" className="text-sm">¿Es vehículo residente?</label>
+              <div className="p-4 bg-muted/50 rounded-lg border">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_resident}
+                    onChange={(e) => setFormData({ ...formData, is_resident: e.target.checked })}
+                    className="h-5 w-5 rounded border-input"
+                  />
+                  <div>
+                    <p className="font-medium">¿Vehículo Residente?</p>
+                    <p className="text-sm text-muted-foreground">
+                      Marque si el vehículo tiene plan de mensualidad
+                    </p>
+                  </div>
+                </label>
               </div>
 
               <div className="flex gap-3 pt-4">

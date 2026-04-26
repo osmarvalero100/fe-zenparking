@@ -16,7 +16,6 @@ import {
   MapPin,
   AlertTriangle,
   FileWarning,
-  Home,
   ArrowRightFromLine,
 } from 'lucide-react';
 
@@ -33,7 +32,6 @@ const navItems: NavItem[] = [
   { label: 'Salida Vehículos', href: '/dashboard/exit', icon: <ArrowRightFromLine className="h-5 w-5" /> },
   { label: 'Mapa del Parqueadero', href: '/dashboard/map', icon: <MapPin className="h-5 w-5" /> },
   { label: 'Vehículos', href: '/dashboard/vehicles', icon: <CarFront className="h-5 w-5" /> },
-  { label: 'Vehículos Residentes', href: '/dashboard/residents', icon: <Home className="h-5 w-5" /> },
   { label: 'Multas', href: '/dashboard/fines', icon: <FileWarning className="h-5 w-5" /> },
   { label: 'Usuarios', href: '/dashboard/users', icon: <Users className="h-5 w-5" />, roles: ['admin'] },
   { label: 'Reportes', href: '/dashboard/reports', icon: <FileText className="h-5 w-5" /> },
