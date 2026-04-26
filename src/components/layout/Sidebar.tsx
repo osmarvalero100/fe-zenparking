@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   FileWarning,
   ArrowRightFromLine,
+  DollarSign,
 } from 'lucide-react';
 
 interface NavItem {
@@ -33,6 +34,7 @@ const navItems: NavItem[] = [
   { label: 'Mapa del Parqueadero', href: '/dashboard/map', icon: <MapPin className="h-5 w-5" /> },
   { label: 'Vehículos', href: '/dashboard/vehicles', icon: <CarFront className="h-5 w-5" /> },
   { label: 'Celdas', href: '/dashboard/spots', icon: <MapPin className="h-5 w-5" />, roles: ['admin'] },
+  { label: 'Tarifas', href: '/dashboard/rates', icon: <DollarSign className="h-5 w-5" />, roles: ['admin'] },
   { label: 'Lista Negra', href: '/dashboard/blacklist', icon: <AlertTriangle className="h-5 w-5" /> },
   { label: 'Multas', href: '/dashboard/fines', icon: <FileWarning className="h-5 w-5" /> },
   { label: 'Usuarios', href: '/dashboard/users', icon: <Users className="h-5 w-5" />, roles: ['admin'] },
