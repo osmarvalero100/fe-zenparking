@@ -118,3 +118,7 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--foreground);
 }
+
+a, button {
+  cursor: pointer;
+}
