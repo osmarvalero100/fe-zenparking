@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/services';
 import type { User, UserRole } from '@/types';
@@ -25,16 +25,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const isInitialized = useRef(false);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem(TOKEN_KEY);
-    const storedUser = localStorage.getItem(USER_KEY);
+    if (isInitialized.current) return;
+    isInitialized.current = true;
 
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+    try {
+      const storedToken = localStorage.getItem(TOKEN_KEY);
+      const storedUser = localStorage.getItem(USER_KEY);
+
+      if (storedToken && storedUser) {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+      }
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
@@ -43,14 +50,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const userData = await authService.getCurrentUser(access_token);
-      setToken(access_token);
-      setUser(userData);
+      
       localStorage.setItem(TOKEN_KEY, access_token);
       localStorage.setItem(USER_KEY, JSON.stringify(userData));
-      router.push('/dashboard');
+      
+      setToken(access_token);
+      setUser(userData);
+      
+      await router.replace('/dashboard');
     } catch (error) {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
+      setToken(null);
+      setUser(null);
       throw error;
     }
   }, [router]);

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { AuthProvider, AlertProvider } from '@/context';
+import { AuthProvider } from '@/context';
+import { AlertProvider } from '@/context';
 
 export const metadata: Metadata = {
   title: 'ZenParking - Sistema de Gestión de Parqueadero',

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Input } from '@/components/ui';
-import { authService } from '@/services';
+import { useAuth } from '@/context';
 import { Car, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 interface LoginFormData {
@@ -19,6 +19,7 @@ interface FormErrors {
 
 export function LoginForm() {
   const router = useRouter();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState<LoginFormData>({
@@ -61,8 +62,7 @@ export function LoginForm() {
     setErrors({});
 
     try {
-      await authService.login(formData.username, formData.password);
-      router.push('/dashboard');
+      await login(formData.username, formData.password);
     } catch (error) {
       setErrors({
         general: error instanceof Error ? error.message : 'Error al iniciar sesión',
