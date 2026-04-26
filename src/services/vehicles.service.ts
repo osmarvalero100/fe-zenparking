@@ -50,6 +50,10 @@ export const vehiclesService = {
     }, token);
   },
 
+  async updateBlacklistEntry(token: string, blacklistId: number, data: { reason?: string; alert_level?: 'low' | 'medium' | 'high'; is_active?: boolean }): Promise<BlacklistEntry> {
+    return apiClient.patch<BlacklistEntry>(`/blacklist/${blacklistId}`, data, token);
+  },
+
   async removeFromBlacklist(token: string, blacklistId: number): Promise<void> {
     await apiClient.delete(`/blacklist/${blacklistId}`, token);
   },
