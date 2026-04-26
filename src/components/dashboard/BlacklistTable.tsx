@@ -303,10 +303,10 @@ export function BlacklistTable() {
                             >
                               {entry.is_active ? 'Desactivar' : 'Activar'}
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleOpenModal(entry)}>
+                            <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleOpenModal(entry)}>
                               Editar
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleDelete(entry.id)}>
+                            <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleDelete(entry.id)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>

@@ -313,10 +313,10 @@ export function SpotsTable() {
                               >
                                 <Wrench className={`h-4 w-4 ${spot.status === 'maintenance' ? 'text-success' : ''}`} />
                               </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleOpenModal(spot)}>
+                              <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleOpenModal(spot)}>
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleDelete(spot.id)}>
+                              <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleDelete(spot.id)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                             </>

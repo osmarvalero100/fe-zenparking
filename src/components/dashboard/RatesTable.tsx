@@ -298,10 +298,10 @@ price_per_minute: 0,
                             >
                               {rate.is_active ? 'Desactivar' : 'Activar'}
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleOpenModal(rate)}>
+                            <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleOpenModal(rate)}>
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleDelete(rate.id)}>
+                            <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleDelete(rate.id)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>

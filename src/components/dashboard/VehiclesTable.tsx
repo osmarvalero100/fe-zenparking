@@ -296,10 +296,10 @@ export function VehiclesTable() {
                       <td className="px-4 py-3 text-right">
                         {hasRole(['admin']) && (
                           <div className="flex items-center justify-end gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => handleOpenModal(vehicle)}>
+                            <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleOpenModal(vehicle)}>
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleDelete(vehicle.id)}>
+                            <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleDelete(vehicle.id)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>

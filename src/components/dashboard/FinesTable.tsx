@@ -186,7 +186,7 @@ export function FinesTable() {
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           {fine.photo_url && (
-                            <Button variant="ghost" size="sm" onClick={() => setSelectedFine(fine)}>
+                            <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => setSelectedFine(fine)}>
                               <Camera className="h-4 w-4" />
                             </Button>
                           )}
