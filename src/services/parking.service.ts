@@ -1,5 +1,5 @@
 import { apiClient } from './api-client';
-import type { ParkingSpot, ParkingSession, ParkingSessionCreate, CapacityAlert } from '@/types';
+import type { ParkingSpot, ParkingSession, ParkingSessionCreate, CapacityAlert, SpotCreate } from '@/types';
 
 export const parkingService = {
   async getSpots(token: string): Promise<ParkingSpot[]> {
@@ -14,12 +14,42 @@ export const parkingService = {
     return apiClient.get<ParkingSpot>(`/spots/${spotId}`, token);
   },
 
+  async createSpot(token: string, data: SpotCreate): Promise<ParkingSpot> {
+    return apiClient.post<ParkingSpot>('/spots/', data, token);
+  },
+
+  async updateSpot(token: string, spotId: number, data: Partial<SpotCreate>): Promise<ParkingSpot> {
+    return apiClient.put<ParkingSpot>(`/spots/${spotId}`, data, token);
+  },
+
+  async deleteSpot(token: string, spotId: number): Promise<void> {
+    await apiClient.delete(`/spots/${spotId}`, token);
+  },
+
   async releaseSpot(token: string, spotId: number): Promise<ParkingSpot> {
     return apiClient.post<ParkingSpot>(`/spots/${spotId}/release`, undefined, token);
   },
 
   async setMaintenance(token: string, spotId: number): Promise<ParkingSpot> {
     return apiClient.post<ParkingSpot>(`/spots/${spotId}/maintenance`, undefined, token);
+  },
+
+  async changeSpotStatus(token: string, spotId: number, status: string): Promise<ParkingSpot> {
+    return apiClient.patch<ParkingSpot>(`/spots/${spotId}`, { status }, token);
+  },
+
+  async getZones(token: string): Promise<{ name: string; count: number }[]> {
+    return apiClient.get<{ name: string; count: number }[]>('/spots/zones', token);
+  },
+
+  async getSpotsStatistics(token: string): Promise<{
+    total: number;
+    free: number;
+    occupied: number;
+    reserved: number;
+    maintenance: number;
+  }> {
+    return apiClient.get('/spots/statistics', token);
   },
 
   async getSessions(token: string): Promise<ParkingSession[]> {

@@ -3,3 +3,4 @@ export { UsersTable } from './UsersTable';
 export { ReportsTable } from './ReportsTable';
 export { FinesTable } from './FinesTable';
 export { VehiclesTable } from './VehiclesTable';
+export { SpotsTable } from './SpotsTable';
