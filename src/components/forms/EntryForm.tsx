@@ -47,7 +47,7 @@ export function EntryForm() {
       } else {
         try {
           const result = await vehiclesService.checkBlacklist(token, plate);
-          setBlacklisted(result);
+          setBlacklisted(result && result.is_blacklisted ? result.entry : null);
         } catch {
           setBlacklisted(null);
         }
