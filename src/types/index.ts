@@ -239,6 +239,7 @@ export interface FineCreate {
   session_id?: number;
   fine_type: FineType;
   description: string;
+  amount: number;
   photo_url?: string;
 }
 

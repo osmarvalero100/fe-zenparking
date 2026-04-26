@@ -1,25 +1,110 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, Badge, Button, Input, Alert } from '@/components/ui';
-import { finesService } from '@/services';
+import { Card, CardHeader, CardTitle, CardContent, Badge, Button, Input, Select, Alert, SearchableSelect } from '@/components/ui';
+import { finesService, vehiclesService } from '@/services';
 import { useAuth } from '@/context';
 import { FileText, Plus, Search, AlertTriangle, Camera, CheckCircle, XCircle } from 'lucide-react';
-import type { FineWithVehicle } from '@/types';
+import type { FineWithVehicle, FineType, Vehicle } from '@/types';
 import { FINE_TYPE_LABELS, STATUS_LABELS, formatCurrency, formatDateTime } from '@/types';
 
 export function FinesTable() {
   const { token, hasRole } = useAuth();
   const [fines, setFines] = useState<FineWithVehicle[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'paid'>('all');
   const [showModal, setShowModal] = useState(false);
   const [selectedFine, setSelectedFine] = useState<FineWithVehicle | null>(null);
+  const [formData, setFormData] = useState({
+    vehicle_id: '',
+    fine_type: 'mal_parking' as FineType,
+    amount: 0,
+    description: '',
+    photo_url: '',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (token) loadFines();
+    if (token) {
+      loadFines();
+      loadVehicles();
+    }
   }, [token]);
+
+  const loadVehicles = async () => {
+    if (!token) return;
+    try {
+      const data = await vehiclesService.getAll(token);
+      setVehicles(data);
+    } catch (error) {
+      console.error('Error loading vehicles:', error);
+    }
+  };
+
+  const handleOpenModal = () => {
+    setFormData({
+      vehicle_id: '',
+      fine_type: 'mal_parking',
+      amount: 0,
+      description: '',
+      photo_url: '',
+    });
+    setErrors({});
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setErrors({});
+  };
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.vehicle_id) {
+      newErrors.vehicle_id = 'Seleccione un vehículo';
+    }
+    if (formData.amount <= 0) {
+      newErrors.amount = 'El monto debe ser mayor a 0';
+    }
+    if (!formData.description.trim()) {
+      newErrors.description = 'La descripción es requerida';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate() || !token) return;
+
+    try {
+      await finesService.create(token, {
+        vehicle_id: parseInt(formData.vehicle_id),
+        fine_type: formData.fine_type,
+        description: formData.description,
+        amount: formData.amount,
+        photo_url: formData.photo_url || undefined,
+      });
+      await loadFines();
+      handleCloseModal();
+    } catch (error) {
+      setErrors({
+        general: error instanceof Error ? error.message : 'Error al registrar multa',
+      });
+    }
+  };
+
+  const vehicleOptions = vehicles.map((v) => ({
+    value: String(v.id),
+    label: `${v.plate} - ${v.owner_name}`,
+  }));
+
+  const fineTypeOptions = Object.entries(FINE_TYPE_LABELS).map(([value, label]) => ({
+    value,
+    label,
+  }));
 
   const loadFines = async () => {
     if (!token) return;
@@ -70,7 +155,7 @@ export function FinesTable() {
             Gestión de Multas
           </CardTitle>
           {hasRole(['admin', 'operator']) && (
-            <Button onClick={() => setShowModal(true)}>
+            <Button onClick={handleOpenModal}>
               <Plus className="h-4 w-4" />
               Registrar Multa
             </Button>
@@ -230,6 +315,87 @@ export function FinesTable() {
           </div>
         </CardContent>
       </Card>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-xl border shadow-lg w-full max-w-md p-6">
+            <h2 className="text-xl font-semibold mb-4">Registrar Nueva Multa</h2>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {errors.general && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  {errors.general}
+                </Alert>
+              )}
+
+              <SearchableSelect
+                label="Vehículo"
+                options={vehicleOptions}
+                value={formData.vehicle_id}
+                onChange={(value) => setFormData({ ...formData, vehicle_id: value })}
+                error={errors.vehicle_id}
+                placeholder="Buscar vehículo por placa o propietario..."
+              />
+
+              <Select
+                label="Tipo de Multa"
+                options={fineTypeOptions}
+                value={formData.fine_type}
+                onChange={(e) => setFormData({ ...formData, fine_type: e.target.value as FineType })}
+              />
+
+              <Input
+                label="Monto (COP)"
+                type="number"
+                placeholder="50000"
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: parseInt(e.target.value) || 0 })}
+                error={errors.amount}
+              />
+
+              <Input
+                label="Descripción"
+                placeholder="Descripción de la infracción..."
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                error={errors.description}
+              />
+
+              <Input
+                label="URL de Foto (opcional)"
+                placeholder="https://..."
+                value={formData.photo_url}
+                onChange={(e) => setFormData({ ...formData, photo_url: e.target.value })}
+              />
+
+              <div className="flex justify-end gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={handleCloseModal}>
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  <Plus className="h-4 w-4" />
+                  Registrar
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {selectedFine?.photo_url && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setSelectedFine(null)}>
+          <div className="bg-card rounded-xl border shadow-lg max-w-2xl p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Foto de la Infracción</h3>
+              <Button variant="ghost" size="icon" onClick={() => setSelectedFine(null)}>
+                <XCircle className="h-5 w-5" />
+              </Button>
+            </div>
+            <img src={selectedFine.photo_url} alt="Foto de infracció" className="max-w-full max-h-[70vh] rounded-lg" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

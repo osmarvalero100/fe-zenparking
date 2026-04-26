@@ -119,6 +119,104 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
 );
 Select.displayName = 'Select';
 
+export interface SearchableSelectProps {
+  label?: string;
+  error?: string;
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+}
+
+export function SearchableSelect({
+  className,
+  label,
+  error,
+  options,
+  value,
+  onChange,
+  placeholder = 'Buscar...',
+  ...props
+}: SearchableSelectProps) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [search, setSearch] = React.useState('');
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [inputRect, setInputRect] = React.useState<DOMRect | null>(null);
+
+  const filteredOptions = options.filter((opt) =>
+    opt.label.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const selectedOption = options.find((opt) => opt.value === value);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="space-y-2" ref={containerRef}>
+      {label && (
+        <label className="text-sm font-medium leading-none">{label}</label>
+      )}
+      <div className="relative">
+        <input
+          type="text"
+          ref={inputRef}
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            inputRef.current && setInputRect(inputRef.current.getBoundingClientRect());
+          }}
+          onFocus={() => {
+            setIsOpen(true);
+            inputRef.current && setInputRect(inputRef.current.getBoundingClientRect());
+          }}
+          placeholder={selectedOption ? selectedOption.label : placeholder}
+          className={cn(
+            'flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer',
+            error && 'border-destructive'
+          )}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setIsOpen(false);
+          }}
+          {...props}
+        />
+        <input type="hidden" value={value} />
+      </div>
+      {isOpen && filteredOptions.length > 0 && (
+        <div className="fixed z-[100] bg-card border rounded-lg shadow-lg max-h-60 overflow-auto" style={{ top: inputRect?.top ? inputRect.top + 40 : 'auto', left: inputRect?.left, width: inputRect?.width }}>
+          {filteredOptions.map((option) => (
+            <div
+              key={option.value}
+              className={cn(
+                'px-3 py-2 cursor-pointer hover:bg-accent',
+                option.value === value && 'bg-accent'
+              )}
+              onClick={() => {
+                onChange(option.value);
+                setSearch('');
+                setIsOpen(false);
+                inputRef.current?.blur();
+              }}
+            >
+              {option.label}
+            </div>
+          ))}
+        </div>
+      )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  );
+}
+
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export function Card({ className, ...props }: CardProps) {
