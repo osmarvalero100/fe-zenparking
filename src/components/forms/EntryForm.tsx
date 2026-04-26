@@ -99,7 +99,11 @@ export function EntryForm() {
         plate: formData.plate,
         spot_id: formData.spot_id,
       });
-      setSession(newSession);
+      setSession({
+        ...newSession,
+        plate: newSession.plate || formData.plate,
+        vehicle_type: newSession.vehicle_type || formData.vehicle_type,
+      });
       setShowSuccess(true);
       await refreshData();
     } catch (error) {
@@ -113,14 +117,16 @@ export function EntryForm() {
 
   const handlePrintTicket = () => {
     if (!session) return;
+    const plate = session.plate || formData.plate;
+    const vehicleType = session.vehicle_type || formData.vehicle_type;
     const ticketContent = `
       ====================================
       ZENPARKING - TICKET DE INGRESO
       ====================================
-      No. Ticket: ${session.ticket_number}
-      Placa: ${session.plate}
-      Tipo: ${VEHICLE_TYPE_LABELS[session.vehicle_type]}
-      Fecha/Hora: ${new Date(session.entry_time).toLocaleString('es-CO')}
+      No. Ticket: ${session.ticket_number || 'N/A'}
+      Placa: ${plate}
+      Tipo: ${VEHICLE_TYPE_LABELS[vehicleType as keyof typeof VEHICLE_TYPE_LABELS] || vehicleType}
+      Fecha/Hora: ${session.entry_time ? new Date(session.entry_time).toLocaleString('es-CO') : new Date().toLocaleString('es-CO')}
       ====================================
     `;
     const printWindow = window.open('', '_blank');
@@ -166,19 +172,19 @@ export function EntryForm() {
         <div className="bg-muted/50 rounded-lg p-4 space-y-3">
           <div className="flex justify-between">
             <span className="text-muted-foreground">No. Ticket:</span>
-            <span className="font-mono font-bold">{session.ticket_number}</span>
+            <span className="font-mono font-bold">{session.ticket_number || 'N/A'}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Placa:</span>
-            <span className="font-bold">{session.plate}</span>
+            <span className="font-bold">{session.plate || formData.plate}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Tipo:</span>
-            <span>{VEHICLE_TYPE_LABELS[session.vehicle_type]}</span>
+            <span>{VEHICLE_TYPE_LABELS[session.vehicle_type as keyof typeof VEHICLE_TYPE_LABELS] || VEHICLE_TYPE_LABELS[formData.vehicle_type as keyof typeof VEHICLE_TYPE_LABELS]}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Fecha/Hora:</span>
-            <span>{new Date(session.entry_time).toLocaleString('es-CO')}</span>
+            <span>{session.entry_time ? new Date(session.entry_time).toLocaleString('es-CO') : new Date().toLocaleString('es-CO')}</span>
           </div>
         </div>
 
@@ -222,7 +228,7 @@ export function EntryForm() {
               <p className="font-semibold">¡Alerta de Seguridad!</p>
               <p className="text-sm">Vehículo en lista negra: {blacklisted.reason}</p>
               <Badge variant="destructive" className="mt-2">
-                Nivel: {blacklisted.alert_level.toUpperCase()}
+                Nivel: {blacklisted.alert_level?.toUpperCase() || 'DESCONOCIDO'}
               </Badge>
             </div>
           </Alert>
