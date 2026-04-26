@@ -33,8 +33,23 @@ export const authService = {
     await apiClient.post('/auth/logout', undefined, token);
   },
 
-  async refreshToken(token: string): Promise<TokenResponse> {
-    return apiClient.post<TokenResponse>('/auth/refresh', undefined, token);
+  async refreshToken(refreshTokenValue: string): Promise<TokenResponse> {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || 'https://bk-zenparking.vercel.app/api/v1'}/auth/refresh`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${refreshTokenValue}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Token expired');
+    }
+
+    return response.json();
   },
 
   async requestPasswordReset(email: string): Promise<void> {

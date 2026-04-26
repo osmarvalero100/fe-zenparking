@@ -13,11 +13,13 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   hasRole: (roles: UserRole[]) => boolean;
+  refreshToken: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const TOKEN_KEY = 'zenparking_token';
+const REFRESH_TOKEN_KEY = 'zenparking_refresh_token';
 const USER_KEY = 'zenparking_user';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -26,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const isInitialized = useRef(false);
+  const isRefreshing = useRef(false);
 
   useEffect(() => {
     if (isInitialized.current) return;
@@ -33,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const storedToken = localStorage.getItem(TOKEN_KEY);
+      const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
       const storedUser = localStorage.getItem(USER_KEY);
 
       if (storedToken && storedUser) {
@@ -44,14 +48,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const refreshToken = useCallback(async () => {
+    if (isRefreshing.current) return;
+    isRefreshing.current = true;
+
+    try {
+      const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+      if (!storedRefreshToken) {
+        throw new Error('No refresh token');
+      }
+
+      const response = await authService.refreshToken(storedRefreshToken);
+      const { access_token, refresh_token } = response;
+
+      localStorage.setItem(TOKEN_KEY, access_token);
+      localStorage.setItem(REFRESH_TOKEN_KEY, refresh_token);
+      setToken(access_token);
+    } catch {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      setToken(null);
+      setUser(null);
+      router.push('/login');
+    } finally {
+      isRefreshing.current = false;
+    }
+  }, [router]);
+
   const login = useCallback(async (username: string, password: string) => {
     const response = await authService.login(username, password);
-    const { access_token } = response;
+    const { access_token, refresh_token } = response;
 
     try {
       const userData = await authService.getCurrentUser(access_token);
       
       localStorage.setItem(TOKEN_KEY, access_token);
+      localStorage.setItem(REFRESH_TOKEN_KEY, refresh_token);
       localStorage.setItem(USER_KEY, JSON.stringify(userData));
       
       setToken(access_token);
@@ -60,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await router.replace('/dashboard');
     } catch (error) {
       localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       setToken(null);
       setUser(null);
@@ -78,6 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     setUser(null);
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     router.push('/login');
   }, [token, router]);
@@ -97,6 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         hasRole,
+        refreshToken,
       }}
     >
       {children}

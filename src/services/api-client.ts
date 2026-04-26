@@ -2,6 +2,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://bk-zenparking.v
 
 interface FetchOptions extends RequestInit {
   token?: string;
+  skipAuthRefresh?: boolean;
 }
 
 class ApiClient {
@@ -23,20 +24,68 @@ class ApiClient {
     return headers;
   }
 
+  private async refreshAccessToken(): Promise<string | null> {
+    if (typeof window === 'undefined') return null;
+
+    try {
+      const refreshToken = localStorage.getItem('zenparking_refresh_token');
+      if (!refreshToken) return null;
+
+      const response = await fetch(`${this.baseUrl}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${refreshToken}`,
+        },
+      });
+
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      localStorage.setItem('zenparking_token', data.access_token);
+      if (data.refresh_token) {
+        localStorage.setItem('zenparking_refresh_token', data.refresh_token);
+      }
+      return data.access_token;
+    } catch {
+      return null;
+    }
+  }
+
   async request<T>(
     endpoint: string,
     options: FetchOptions = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    const { token, ...fetchOptions } = options;
+    const { token, skipAuthRefresh, ...fetchOptions } = options;
 
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       ...fetchOptions,
       headers: {
         ...this.getHeaders({ token }),
         ...(fetchOptions.headers || {}),
       },
     });
+
+    if (response.status === 401 && !skipAuthRefresh && token) {
+      const newToken = await this.refreshAccessToken();
+      if (newToken) {
+        response = await fetch(url, {
+          ...fetchOptions,
+          headers: {
+            ...this.getHeaders({ token: newToken }),
+            ...(fetchOptions.headers || {}),
+          },
+        });
+      } else {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('zenparking_token');
+          localStorage.removeItem('zenparking_refresh_token');
+          localStorage.removeItem('zenparking_user');
+          window.location.href = '/login';
+        }
+      }
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Error de conexión' }));
