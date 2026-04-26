@@ -102,6 +102,11 @@ export function ParkingMap() {
     {} as Record<string, number>
   );
 
+  const totalSpots = spots.length;
+  const occupiedSpots = statsByStatus.occupied || 0;
+  const occupationPercentage = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
+  const isFull = totalSpots > 0 && occupiedSpots >= totalSpots;
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -143,8 +148,8 @@ export function ParkingMap() {
 
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
-            <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${capacityAlert?.is_full ? 'bg-red-500/20' : 'bg-blue-500/20'}`}>
-              {capacityAlert?.is_full ? (
+            <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${isFull ? 'bg-red-500/20' : 'bg-blue-500/20'}`}>
+              {isFull ? (
                 <AlertTriangle className="h-5 w-5 text-red-500" />
               ) : (
                 <TrendingUp className="h-5 w-5 text-blue-500" />
@@ -152,7 +157,7 @@ export function ParkingMap() {
             </div>
             <div>
               <p className="text-2xl font-bold">
-                {capacityAlert?.percentage?.toFixed(0) || 0}%
+                {occupationPercentage}%
               </p>
               <p className="text-xs text-muted-foreground">Ocupación</p>
             </div>
