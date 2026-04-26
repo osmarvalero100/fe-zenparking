@@ -48,17 +48,24 @@ export function ExitForm() {
 
     setIsLoading(true);
     setErrors({});
+    setSession(null);
 
     try {
-      const tickets = await exitService.getSessionByPlate(token, formData.ticketOrPlate);
-      if (tickets.length === 0) {
-        const sessionByTicket = await exitService.getSessionByTicket(token, formData.ticketOrPlate);
-        setSession(sessionByTicket);
-      } else if (tickets.length === 1) {
-        setSession(tickets[0]);
-      } else {
-        setErrors({ general: `Se encontraron ${tickets.length} vehículos. Especifique el ticket` });
+      const searchTerm = formData.ticketOrPlate.trim().toUpperCase();
+      
+      const sessionByPlate = await exitService.searchByPlate(token, searchTerm);
+      if (sessionByPlate) {
+        setSession(sessionByPlate);
+        return;
       }
+
+      const sessionByTicket = await exitService.searchByTicket(token, searchTerm);
+      if (sessionByTicket) {
+        setSession(sessionByTicket);
+        return;
+      }
+
+      setErrors({ general: 'No se encontró ninguna sesión con ese ticket o placa' });
     } catch (error) {
       setErrors({
         general: error instanceof Error ? error.message : 'No se encontró la sesión',
