@@ -19,7 +19,7 @@ export function RatesTable() {
   const [formData, setFormData] = useState({
     name: '',
     vehicle_type: 'car' as VehicleType,
-    price_per_hour: 0,
+    price_per_minute: 0,
     max_price: 0,
     description: '',
     is_active: true,
@@ -56,7 +56,7 @@ export function RatesTable() {
       setFormData({
         name: rate.name,
         vehicle_type: rate.vehicle_type,
-        price_per_hour: rate.price_per_hour,
+        price_per_minute: rate.price_per_minute,
         max_price: rate.max_price || 0,
         description: rate.description || '',
         is_active: rate.is_active,
@@ -66,7 +66,7 @@ export function RatesTable() {
       setFormData({
         name: '',
         vehicle_type: 'car',
-        price_per_hour: 0,
+price_per_minute: 0,
         max_price: 0,
         description: '',
         is_active: true,
@@ -87,8 +87,8 @@ export function RatesTable() {
     if (!formData.name.trim()) {
       newErrors.name = 'El nombre es requerido';
     }
-    if (formData.price_per_hour <= 0) {
-      newErrors.price_per_hour = 'El precio por hora debe ser mayor a 0';
+    if (formData.price_per_minute <= 0) {
+      newErrors.price_per_minute = 'El precio por hora debe ser mayor a 0';
     }
     if (formData.max_price < 0) {
       newErrors.max_price = 'El precio máximo no puede ser negativo';
@@ -105,7 +105,7 @@ export function RatesTable() {
       const data = {
         name: formData.name,
         vehicle_type: formData.vehicle_type,
-        price_per_hour: formData.price_per_hour,
+        price_per_minute: formData.price_per_minute,
         max_price: formData.max_price || undefined,
         description: formData.description || undefined,
         is_active: formData.is_active,
@@ -235,7 +235,7 @@ export function RatesTable() {
                     Tipo de Vehículo
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Precio/Hora
+                    Precio/Min
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Precio Máximo
@@ -276,7 +276,7 @@ export function RatesTable() {
                         {VEHICLE_TYPE_LABELS[rate.vehicle_type]}
                       </td>
                       <td className="px-4 py-3 text-sm font-semibold">
-                        {formatCurrency(rate.price_per_hour)}
+                        {formatCurrency(rate.price_per_minute || 0)}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         {rate.max_price ? formatCurrency(rate.max_price) : '-'}
@@ -351,9 +351,9 @@ export function RatesTable() {
                 type="number"
                 min="0"
                 placeholder="5000"
-                value={formData.price_per_hour}
-                onChange={(e) => setFormData({ ...formData, price_per_hour: parseInt(e.target.value) || 0 })}
-                error={errors.price_per_hour}
+                value={formData.price_per_minute}
+                onChange={(e) => setFormData({ ...formData, price_per_minute: parseInt(e.target.value) || 0 })}
+                error={errors.price_per_minute}
               />
 
               <Input

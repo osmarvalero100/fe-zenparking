@@ -61,7 +61,7 @@ export interface Rate {
   id: number;
   name: string;
   vehicle_type: VehicleType;
-  price_per_hour: number;
+  price_per_minute: number;
   max_price?: number;
   description?: string;
   is_active: boolean;
