@@ -8,13 +8,16 @@ import { useAuth, useAlerts } from '@/context';
 import {
   LayoutDashboard,
   Car,
+  CarFront,
   LogOut,
   Users,
   FileText,
   Bell,
   MapPin,
-  Settings,
   AlertTriangle,
+  FileWarning,
+  Home,
+  ArrowRightFromLine,
 } from 'lucide-react';
 
 interface NavItem {
@@ -27,7 +30,10 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
   { label: 'Ingreso Vehículos', href: '/dashboard/entry', icon: <Car className="h-5 w-5" /> },
+  { label: 'Salida Vehículos', href: '/dashboard/exit', icon: <ArrowRightFromLine className="h-5 w-5" /> },
   { label: 'Mapa del Parqueadero', href: '/dashboard/map', icon: <MapPin className="h-5 w-5" /> },
+  { label: 'Vehículos Residentes', href: '/dashboard/residents', icon: <Home className="h-5 w-5" /> },
+  { label: 'Multas', href: '/dashboard/fines', icon: <FileWarning className="h-5 w-5" /> },
   { label: 'Usuarios', href: '/dashboard/users', icon: <Users className="h-5 w-5" />, roles: ['admin'] },
   { label: 'Reportes', href: '/dashboard/reports', icon: <FileText className="h-5 w-5" /> },
   { label: 'Notificaciones', href: '/dashboard/notifications', icon: <Bell className="h-5 w-5" /> },

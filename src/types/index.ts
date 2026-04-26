@@ -147,6 +147,124 @@ export interface ApiError {
   detail: string;
 }
 
+export interface ExitSession {
+  session_id: number;
+  plate: string;
+  ticket_number: string;
+  vehicle_type: VehicleType;
+  entry_time: string;
+  exit_time?: string;
+  duration_minutes?: number;
+  total_amount?: number;
+  pending_fines: Fine[];
+  payment_status: 'pending' | 'paid';
+}
+
+export interface ResidentVehicle {
+  id: number;
+  vehicle_id: number;
+  plate: string;
+  vehicle_type: VehicleType;
+  owner_name: string;
+  owner_phone?: string;
+  owner_email?: string;
+  spot_id?: number;
+  spot_number?: string;
+  monthly_rate_id: number;
+  rate_name: string;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface Notification {
+  id: number;
+  type: 'entry' | 'exit' | 'fine' | 'blacklist' | 'expiry' | 'timeout';
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  related_id?: number;
+  related_type?: 'session' | 'vehicle' | 'fine' | 'blacklist';
+}
+
+export interface SpotHistory {
+  id: number;
+  spot_id: number;
+  spot_number: string;
+  vehicle_id?: number;
+  plate?: string;
+  entry_time: string;
+  exit_time?: string;
+  duration_minutes?: number;
+  vehicle_type: VehicleType;
+  is_resident: boolean;
+}
+
+export interface DailyMovementsReport {
+  date: string;
+  total_entries: number;
+  total_exits: number;
+  current_vehicles: number;
+  entries: ParkingSession[];
+  exits: ParkingSession[];
+  summary: {
+    total_revenue: number;
+    average_stay_minutes: number;
+    occupancy_percentage: number;
+  };
+}
+
+export interface BlacklistCheck {
+  is_blacklisted: boolean;
+  entry: BlacklistEntry | null;
+}
+
+export interface MonthlyPass {
+  id: number;
+  vehicle_id: number;
+  plate: string;
+  owner_name: string;
+  rate_name: string;
+  price: number;
+  start_date: string;
+  end_date: string;
+  days_until_expiry: number;
+  is_active: boolean;
+}
+
+export interface FineCreate {
+  vehicle_id: number;
+  session_id?: number;
+  fine_type: FineType;
+  description: string;
+  photo_url?: string;
+}
+
+export interface SpotCreate {
+  spot_number: string;
+  vehicle_type: VehicleType;
+  zone?: string;
+  floor: number;
+  row?: string;
+  column?: number;
+  is_near_exit: boolean;
+}
+
+export interface FineWithVehicle extends Fine {
+  vehicle: Vehicle;
+}
+
+export interface ExpiringMonthlyPass {
+  vehicle_id: number;
+  plate: string;
+  owner_name: string;
+  owner_email?: string;
+  end_date: string;
+  days_until_expiry: number;
+}
+
 export const VEHICLE_TYPE_LABELS: Record<VehicleType, string> = {
   car: 'Carro',
   motocycle: 'Motocicleta',

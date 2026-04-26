@@ -4,3 +4,4 @@ export { usersService } from './users.service';
 export { parkingService } from './parking.service';
 export { vehiclesService } from './vehicles.service';
 export { reportsService } from './reports.service';
+export { finesService, residentsService, exitService } from './exit.service';

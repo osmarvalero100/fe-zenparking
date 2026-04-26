@@ -71,7 +71,7 @@ function ZoneGrid({ zoneName, spots, rows, cols, onSpotClick }: ZoneGridProps) {
           if (!spot) {
             return (
               <div
-                key={idx}
+                key={`empty-${zoneName}-${idx}`}
                 className="w-12 h-12 rounded-lg bg-muted/30 border border-dashed border-muted"
               />
             );
@@ -152,7 +152,7 @@ export function ParkingMap() {
             </div>
             <div>
               <p className="text-2xl font-bold">
-                {capacityAlert?.percentage.toFixed(0) || 0}%
+                {capacityAlert?.percentage?.toFixed(0) || 0}%
               </p>
               <p className="text-xs text-muted-foreground">Ocupación</p>
             </div>
