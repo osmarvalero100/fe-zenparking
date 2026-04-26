@@ -47,15 +47,19 @@ export const residentsService = {
 export const exitService = {
   async searchByPlate(token: string, plate: string): Promise<ExitSession | null> {
     try {
-      return await apiClient.get<ExitSession>(`/sessions/search?plate=${encodeURIComponent(plate)}`, token);
-    } catch {
+      const sessions = await apiClient.get<ExitSession[]>(`/sessions/active?plate=${encodeURIComponent(plate)}`, token);
+      if (sessions.length === 1) return sessions[0];
+      if (sessions.length > 1) throw new Error(`Se encontraron ${sessions.length} vehículos. Especifique el ticket`);
+      return null;
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Se encontraron')) throw error;
       return null;
     }
   },
 
   async searchByTicket(token: string, ticket: string): Promise<ExitSession | null> {
     try {
-      return await apiClient.get<ExitSession>(`/sessions/search?ticket=${encodeURIComponent(ticket)}`, token);
+      return await apiClient.get<ExitSession>(`/sessions/ticket/${encodeURIComponent(ticket)}`, token);
     } catch {
       return null;
     }
