@@ -1,5 +1,5 @@
 import { apiClient } from './api-client';
-import type { Vehicle, BlacklistEntry } from '@/types';
+import type { Vehicle, BlacklistEntry, BlacklistCheckResponse } from '@/types';
 
 export const vehiclesService = {
   async getAll(token: string): Promise<Vehicle[]> {
@@ -34,9 +34,9 @@ export const vehiclesService = {
     return apiClient.get<BlacklistEntry[]>('/blacklist/', token);
   },
 
-  async checkBlacklist(token: string, plate: string): Promise<BlacklistEntry | null> {
+  async checkBlacklist(token: string, plate: string): Promise<BlacklistCheckResponse | null> {
     try {
-      return await apiClient.get<BlacklistEntry>(`/vehicles/blacklist/check/${encodeURIComponent(plate)}`, token);
+      return await apiClient.get<BlacklistCheckResponse>(`/vehicles/blacklist/check/${encodeURIComponent(plate)}`, token);
     } catch {
       return null;
     }

@@ -90,6 +90,11 @@ export interface BlacklistEntry {
   vehicle?: Vehicle;
 }
 
+export interface BlacklistCheckResponse {
+  is_blacklisted: boolean;
+  entry: BlacklistEntry | null;
+}
+
 export interface AuditLog {
   id: number;
   user_id: number;
