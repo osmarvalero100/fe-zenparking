@@ -18,6 +18,18 @@ export const vehiclesService = {
     return apiClient.post<Vehicle>('/vehicles/', data, token);
   },
 
+  async update(token: string, vehicleId: number, data: Partial<Vehicle>): Promise<Vehicle> {
+    return apiClient.put<Vehicle>(`/vehicles/${vehicleId}`, data, token);
+  },
+
+  async delete(token: string, vehicleId: number): Promise<void> {
+    await apiClient.delete(`/vehicles/${vehicleId}`, token);
+  },
+
+  async getResident(token: string): Promise<Vehicle[]> {
+    return apiClient.get<Vehicle[]>('/vehicles/resident', token);
+  },
+
   async getBlacklist(token: string): Promise<BlacklistEntry[]> {
     return apiClient.get<BlacklistEntry[]>('/blacklist/', token);
   },
@@ -28,5 +40,17 @@ export const vehiclesService = {
     } catch {
       return null;
     }
+  },
+
+  async addToBlacklist(token: string, vehicleId: number, reason: string, alertLevel: 'low' | 'medium' | 'high'): Promise<BlacklistEntry> {
+    return apiClient.post<BlacklistEntry>('/blacklist/', {
+      vehicle_id: vehicleId,
+      reason,
+      alert_level: alertLevel,
+    }, token);
+  },
+
+  async removeFromBlacklist(token: string, blacklistId: number): Promise<void> {
+    await apiClient.delete(`/blacklist/${blacklistId}`, token);
   },
 };
