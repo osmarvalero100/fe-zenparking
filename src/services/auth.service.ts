@@ -53,7 +53,8 @@ export const authService = {
   },
 
   async requestPasswordReset(email: string): Promise<void> {
-    await apiClient.post('/auth/request-password-reset', { email });
+    const url = `${process.env.NEXT_PUBLIC_API_URL || 'https://bk-zenparking.vercel.app/api/v1'}/auth/request-password-reset?email=${encodeURIComponent(email)}`;
+    await fetch(url, { method: 'POST', headers: { 'accept': 'application/json' } });
   },
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
