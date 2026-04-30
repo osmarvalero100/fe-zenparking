@@ -53,7 +53,8 @@ export const authService = {
   },
 
   async requestPasswordReset(email: string): Promise<void> {
-    const url = `${process.env.NEXT_PUBLIC_API_URL || 'https://bk-zenparking.vercel.app/api/v1'}/auth/request-password-reset?email=${encodeURIComponent(email)}`;
+    const frontendUrl = typeof window !== 'undefined' ? `${window.location.origin}/new-password` : '';
+    const url = `${process.env.NEXT_PUBLIC_API_URL || 'https://bk-zenparking.vercel.app/api/v1'}/auth/request-password-reset?email=${encodeURIComponent(email)}&frontend_url=${encodeURIComponent(frontendUrl)}`;
     await fetch(url, { method: 'POST', headers: { 'accept': 'application/json' } });
   },
 
