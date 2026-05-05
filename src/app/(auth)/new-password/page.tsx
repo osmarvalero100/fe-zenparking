@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, Input, Alert, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { authService } from '@/services';
 import { Lock, CheckCircle, ArrowLeft } from 'lucide-react';
 
-export default function NewPasswordPage() {
+function NewPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -146,5 +146,13 @@ export default function NewPasswordPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function NewPasswordPage() {
+  return (
+    <Suspense>
+      <NewPasswordContent />
+    </Suspense>
   );
 }
