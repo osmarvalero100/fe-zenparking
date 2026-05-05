@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button, Input, Alert, Badge, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
-import { exitService } from '@/services';
+import { exitService, finesService } from '@/services';
 import { useAuth, useAlerts } from '@/context';
 import { formatCurrency, formatDateTime, formatDuration, VEHICLE_TYPE_LABELS } from '@/types';
 import { Ticket, Car, Clock, DollarSign, CheckCircle, AlertTriangle, Printer } from 'lucide-react';
@@ -27,6 +27,8 @@ export function ExitForm() {
   const [formData, setFormData] = useState<ExitFormData>({ ticketOrPlate: '' });
   const [errors, setErrors] = useState<FormErrors>({});
   const [showSuccess, setShowSuccess] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
+  const [showFinesModal, setShowFinesModal] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, ticketOrPlate: e.target.value.toUpperCase() }));
@@ -75,13 +77,31 @@ export function ExitForm() {
     }
   };
 
+  const calculateTotal = (): number => {
+    const parkingFee = session?.total_amount || 0;
+    const finesTotal = session?.pending_fines?.reduce((sum, fine) => sum + fine.amount, 0) || 0;
+    return parkingFee + finesTotal;
+  };
+
   const handleProcessExit = async () => {
     if (!session || !token) return;
 
     setIsLoading(true);
 
     try {
-      await exitService.processExit(token, session.session_id, 'paid');
+      if (session.pending_fines && session.pending_fines.length > 0) {
+        for (const fine of session.pending_fines) {
+          await finesService.payFine(token, fine.id);
+        }
+      }
+
+      const sessionId = session.session_id || session.id;
+      if (!sessionId) {
+        setErrors({ general: 'No se pudo identificar la sesión' });
+        setIsLoading(false);
+        return;
+      }
+      await exitService.processExit(token, sessionId, 'paid');
       setShowSuccess(true);
       await refreshData();
     } catch (error) {
@@ -99,6 +119,7 @@ export function ExitForm() {
     setSession(null);
     setShowPayment(false);
     setShowSuccess(false);
+    setShowFinesModal(false);
     setFormData({ ticketOrPlate: '' });
   };
 
@@ -114,8 +135,8 @@ export function ExitForm() {
       Hora Ingreso: ${formatDateTime(session.entry_time)}
       Hora Salida: ${formatDateTime(new Date().toISOString())}
       Duración: ${formatDuration(session.duration_minutes || 0)}
-      Valor Total: ${formatCurrency(session.total_amount || 0)}
-      Estado Pago: ${session.payment_status === 'paid' ? 'PAGADO' : 'PENDIENTE'}
+      Valor Total: ${formatCurrency(calculateTotal())}
+      Estado Pago: PAGADO
       ================================
     `;
     const printWindow = window.open('', '_blank');
@@ -161,7 +182,7 @@ export function ExitForm() {
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Total Pagado:</span>
-            <span className="font-bold text-success">{formatCurrency(session.total_amount || 0)}</span>
+            <span className="font-bold text-success">{formatCurrency(calculateTotal())}</span>
           </div>
         </div>
 
@@ -245,33 +266,81 @@ export function ExitForm() {
               </div>
             </div>
 
-            <div className="border-t pt-4 mt-4">
+            <div className="border-t pt-4 mt-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-lg font-semibold">Total a Pagar:</span>
+                  <span className="text-lg font-semibold">Parqueo:</span>
                 </div>
-                <span className="text-2xl font-bold text-primary">
+                <span className="text-lg font-medium">
                   {formatCurrency(session.total_amount || 0)}
+                </span>
+              </div>
+
+              {session.pending_fines && session.pending_fines.length > 0 && (
+                <>
+                  <button
+                    type="button"
+                    className="flex items-center justify-between w-full text-sm font-semibold text-warning cursor-pointer hover:opacity-80"
+                    onClick={() => setShowFinesModal(true)}
+                  >
+                    <span className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Multas Pendientes ({session.pending_fines.length}):
+                    </span>
+                    <span>
+                      {formatCurrency(session.pending_fines.reduce((sum, f) => sum + f.amount, 0))}
+                    </span>
+                  </button>
+                  {session.pending_fines.map((fine, idx) => (
+                    <div key={idx} className="flex justify-between text-sm bg-warning/10 p-2 rounded">
+                      <span className="truncate mr-2">{fine.description || 'Multa'}</span>
+                      <span className="font-medium whitespace-nowrap">{formatCurrency(fine.amount)}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+
+            <div className="border-t pt-4 mt-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-6 w-6 text-primary" />
+                  <span className="text-xl font-bold">Total a Pagar:</span>
+                </div>
+                <span className="text-3xl font-bold text-primary">
+                  {formatCurrency(calculateTotal())}
                 </span>
               </div>
             </div>
 
-            {session.pending_fines && session.pending_fines.length > 0 && (
-              <div className="border-t pt-4 mt-4 space-y-2">
-                <p className="text-sm font-semibold text-warning flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  Multas Pendientes:
-                </p>
-                {session.pending_fines.map((fine, idx) => (
-                  <div key={idx} className="flex justify-between text-sm bg-warning/10 p-2 rounded">
-                    <span>{fine.description || 'Multa'}</span>
-                    <span className="font-medium">{formatCurrency(fine.amount)}</span>
-                  </div>
-                ))}
+            <div className="border-t pt-4 mt-4">
+              <p className="text-sm font-medium mb-3">Método de Pago:</p>
+              <div className="flex gap-3">
+                <Button
+                  variant={paymentMethod === 'cash' ? 'primary' : 'outline'}
+                  className="flex-1"
+                  onClick={() => setPaymentMethod('cash')}
+                >
+                  Efectivo
+                </Button>
+                <Button
+                  variant={paymentMethod === 'card' ? 'primary' : 'outline'}
+                  className="flex-1"
+                  onClick={() => setPaymentMethod('card')}
+                >
+                  Tarjeta
+                </Button>
               </div>
-            )}
+            </div>
           </div>
+
+          {errors.blocked && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              {errors.blocked}
+            </Alert>
+          )}
 
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1" onClick={handleNewExit}>
@@ -281,10 +350,31 @@ export function ExitForm() {
               className="flex-1"
               onClick={handleProcessExit}
               isLoading={isLoading}
-              disabled={session.payment_status === 'pending'}
             >
               <CheckCircle className="h-4 w-4" />
               Confirmar Salida
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {showFinesModal && session?.pending_fines && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowFinesModal(false)}>
+          <div className="bg-card rounded-xl border shadow-lg w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              Multas Pendientes
+            </h3>
+            <div className="space-y-2 mb-4">
+              {session.pending_fines.map((fine, idx) => (
+                <div key={idx} className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-medium">{fine.description || 'Multa'}</p>
+                  <p className="text-sm text-muted-foreground">{formatCurrency(fine.amount)}</p>
+                </div>
+              ))}
+            </div>
+            <Button className="w-full" onClick={() => setShowFinesModal(false)}>
+              Cerrar
             </Button>
           </div>
         </div>

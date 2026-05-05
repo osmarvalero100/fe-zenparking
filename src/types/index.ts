@@ -153,7 +153,8 @@ export interface ApiError {
 }
 
 export interface ExitSession {
-  session_id: number;
+  session_id?: number;
+  id?: number;
   plate: string;
   ticket_number: string;
   vehicle_type: VehicleType;

@@ -70,7 +70,7 @@ export const exitService = {
   },
 
   async processExit(token: string, sessionId: number, paymentStatus: string = 'paid', notes?: string): Promise<ExitSession> {
-    return apiClient.post<ExitSession>(`/sessions/${sessionId}/exit`, {
+    return apiClient.patch<ExitSession>(`/sessions/${sessionId}/exit`, {
       payment_status: paymentStatus,
       notes,
     }, token);
