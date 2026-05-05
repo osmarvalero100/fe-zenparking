@@ -36,5 +36,5 @@ export function validatePassword(password: string): {
 }
 
 export function formatPlate(plate: string): string {
-  return plate.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return plate.toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/\s/g, '');
 }
