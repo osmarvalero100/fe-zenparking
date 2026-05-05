@@ -27,13 +27,19 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
     
     setIsRefreshing(true);
     try {
-      const [capacity, blacklist, spotsData] = await Promise.all([
+      const [capacity, blacklist, spotsData, vehiclesData] = await Promise.all([
         parkingService.getCapacityAlert(token),
         vehiclesService.getBlacklist(token),
         parkingService.getSpots(token),
+        vehiclesService.getAll(token),
       ]);
       setCapacityAlert(capacity);
-      setBlacklistAlerts(blacklist.filter(b => b.is_active));
+      const vehicleMap: Record<number, typeof vehiclesData[number]> = {};
+      vehiclesData.forEach((v) => { vehicleMap[v.id] = v; });
+      setBlacklistAlerts(blacklist.filter(b => b.is_active).map(b => ({
+        ...b,
+        vehicle: b.vehicle || vehicleMap[b.vehicle_id],
+      })));
       setSpots(spotsData);
     } catch (error) {
       console.error('Error refreshing data:', error);
