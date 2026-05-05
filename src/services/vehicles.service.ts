@@ -42,9 +42,9 @@ export const vehiclesService = {
     }
   },
 
-  async addToBlacklist(token: string, vehicleId: number, reason: string, alertLevel: 'low' | 'medium' | 'high'): Promise<BlacklistEntry> {
+  async addToBlacklist(token: string, plate: string, reason: string, alertLevel: 'low' | 'medium' | 'high'): Promise<BlacklistEntry> {
     return apiClient.post<BlacklistEntry>('/blacklist/', {
-      vehicle_id: vehicleId,
+      plate,
       reason,
       alert_level: alertLevel,
     }, token);

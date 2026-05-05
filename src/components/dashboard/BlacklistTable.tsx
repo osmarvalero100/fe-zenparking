@@ -5,12 +5,13 @@ import { Card, CardHeader, CardTitle, CardContent, Badge, Button, Input, Select,
 import { vehiclesService } from '@/services';
 import { useAuth } from '@/context';
 import { AlertTriangle, Plus, Search, Trash2, AlertCircle, ShieldAlert } from 'lucide-react';
-import type { BlacklistEntry } from '@/types';
+import type { BlacklistEntry, Vehicle } from '@/types';
 import { formatDateTime, ALERT_LEVEL_COLORS } from '@/types';
 
 export function BlacklistTable() {
   const { token, hasRole } = useAuth();
   const [blacklist, setBlacklist] = useState<BlacklistEntry[]>([]);
+  const [vehicles, setVehicles] = useState<Record<number, Vehicle>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterLevel, setFilterLevel] = useState<'all' | 'low' | 'medium' | 'high'>('all');
@@ -24,24 +25,33 @@ export function BlacklistTable() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (token) loadBlacklist();
+    if (token) loadData();
   }, [token]);
 
-  const loadBlacklist = async () => {
+  const loadData = async () => {
     if (!token) return;
     setIsLoading(true);
     try {
-      const data = await vehiclesService.getBlacklist(token);
-      setBlacklist(data);
+      const [blacklistData, vehiclesData] = await Promise.all([
+        vehiclesService.getBlacklist(token),
+        vehiclesService.getAll(token),
+      ]);
+      setBlacklist(blacklistData);
+      const vehicleMap: Record<number, Vehicle> = {};
+      vehiclesData.forEach((v) => { vehicleMap[v.id] = v; });
+      setVehicles(vehicleMap);
     } catch (error) {
-      console.error('Error loading blacklist:', error);
+      console.error('Error loading data:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const getPlate = (entry: BlacklistEntry): string => entry.vehicle?.plate || vehicles[entry.vehicle_id]?.plate || '';
+  const getOwnerName = (entry: BlacklistEntry): string => entry.vehicle?.owner_name || vehicles[entry.vehicle_id]?.owner_name || '-';
+
   const filteredBlacklist = blacklist.filter((entry) => {
-    const plate = entry.vehicle?.plate || '';
+    const plate = getPlate(entry);
     const matchesSearch = plate.toLowerCase().includes(searchQuery.toLowerCase()) ||
       entry.reason.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesLevel = filterLevel === 'all' || entry.alert_level === filterLevel;
@@ -59,7 +69,7 @@ export function BlacklistTable() {
     if (entry) {
       setEditingEntry(entry);
       setFormData({
-        vehicle_plate: entry.vehicle?.plate || '',
+        vehicle_plate: getPlate(entry),
         reason: entry.reason,
         alert_level: entry.alert_level,
       });
@@ -104,10 +114,9 @@ export function BlacklistTable() {
           alert_level: formData.alert_level,
         });
       } else {
-        const vehicle = await vehiclesService.getByPlate(token, formData.vehicle_plate);
-        await vehiclesService.addToBlacklist(token, vehicle.id, formData.reason, formData.alert_level);
+        await vehiclesService.addToBlacklist(token, formData.vehicle_plate, formData.reason, formData.alert_level);
       }
-      await loadBlacklist();
+      await loadData();
       handleCloseModal();
     } catch (error) {
       setErrors({
@@ -120,7 +129,7 @@ export function BlacklistTable() {
     if (!token || !confirm('¿Está seguro de eliminar esta entrada de la lista negra?')) return;
     try {
       await vehiclesService.removeFromBlacklist(token, entryId);
-      await loadBlacklist();
+      await loadData();
     } catch (error) {
       console.error('Error removing from blacklist:', error);
     }
@@ -132,7 +141,7 @@ export function BlacklistTable() {
       await vehiclesService.updateBlacklistEntry(token, entry.id, {
         is_active: !entry.is_active,
       });
-      await loadBlacklist();
+      await loadData();
     } catch (error) {
       console.error('Error toggling blacklist entry:', error);
     }
@@ -269,10 +278,10 @@ export function BlacklistTable() {
                   filteredBlacklist.map((entry) => (
                     <tr key={entry.id} className={!entry.is_active ? 'opacity-50' : ''}>
                       <td className="px-4 py-3">
-                        <span className="font-mono font-bold">{entry.vehicle?.plate || 'N/A'}</span>
+                        <span className="font-mono font-bold">{getPlate(entry) || 'N/A'}</span>
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        {entry.vehicle?.owner_name || '-'}
+                        {getOwnerName(entry)}
                       </td>
                       <td className="px-4 py-3 text-sm max-w-xs truncate">
                         {entry.reason}
