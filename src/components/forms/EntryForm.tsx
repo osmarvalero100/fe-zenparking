@@ -5,8 +5,8 @@ import { Button, Input, Select, Alert, Badge } from '@/components/ui';
 import { parkingService, vehiclesService } from '@/services';
 import { useAuth, useAlerts } from '@/context';
 import { validatePlate, formatPlate } from '@/lib/utils';
-import { Ticket, Car, AlertTriangle, Check, Printer } from 'lucide-react';
-import type { ParkingSession, VehicleType, BlacklistEntry } from '@/types';
+import { Ticket, Car, AlertTriangle, Check, Printer, User } from 'lucide-react';
+import type { ParkingSession, BlacklistEntry, VehicleType } from '@/types';
 import { VEHICLE_TYPE_LABELS } from '@/types';
 
 interface EntryFormData {
@@ -33,6 +33,15 @@ export function EntryForm() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showVehicleModal, setShowVehicleModal] = useState(false);
+  const [vehicleFormData, setVehicleFormData] = useState({
+    owner_name: '',
+    owner_phone: '',
+    owner_email: '',
+    is_resident: false,
+  });
+  const [vehicleErrors, setVehicleErrors] = useState<Record<string, string>>({});
+  const [isCreatingVehicle, setIsCreatingVehicle] = useState(false);
 
   const checkBlacklist = useCallback(
     async (plate: string) => {
@@ -70,7 +79,10 @@ export function EntryForm() {
     }));
   };
 
-  const validate = (): boolean => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+
     const newErrors: FormErrors = {};
 
     if (!formData.plate.trim()) {
@@ -84,15 +96,47 @@ export function EntryForm() {
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate() || !token) return;
+    if (Object.keys(newErrors).length > 0) return;
 
     setIsLoading(true);
     setErrors({});
+
+    try {
+      let vehicleExists = false;
+      try {
+        await vehiclesService.getByPlate(token, formData.plate);
+        vehicleExists = true;
+      } catch {
+        vehicleExists = false;
+      }
+
+      if (!vehicleExists) {
+        setVehicleFormData({
+          owner_name: '',
+          owner_phone: '',
+          owner_email: '',
+          is_resident: false,
+        });
+        setVehicleErrors({});
+        setShowVehicleModal(true);
+        setIsLoading(false);
+        return;
+      }
+
+      await registerEntry();
+    } catch (error) {
+      setErrors({
+        general: error instanceof Error ? error.message : 'Error al registrar ingreso',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const registerEntry = async () => {
+    if (!token) return;
+
+    setIsLoading(true);
 
     try {
       const newSession = await parkingService.registerEntry(token, {
@@ -113,6 +157,43 @@ export function EntryForm() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleVehicleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+
+    const newErrors: Record<string, string> = {};
+
+    if (!vehicleFormData.owner_name.trim()) {
+      newErrors.owner_name = 'El nombre del propietario es requerido';
+    }
+
+    setVehicleErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
+    setIsCreatingVehicle(true);
+
+    try {
+      await vehiclesService.create(token, {
+        plate: formData.plate,
+        vehicle_type: formData.vehicle_type,
+        ...vehicleFormData,
+      });
+      setShowVehicleModal(false);
+      await registerEntry();
+    } catch (error) {
+      setVehicleErrors({
+        general: error instanceof Error ? error.message : 'Error al crear el vehículo',
+      });
+    } finally {
+      setIsCreatingVehicle(false);
+    }
+  };
+
+  const handleCloseVehicleModal = () => {
+    setShowVehicleModal(false);
+    setVehicleErrors({});
   };
 
   const handlePrintTicket = () => {
@@ -257,6 +338,87 @@ export function EntryForm() {
           Registrar Ingreso
         </Button>
       </form>
+
+      {showVehicleModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-xl border shadow-lg w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <User className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Crear Vehículo</h3>
+                <p className="text-sm text-muted-foreground">
+                  No se encontró un vehículo con placa {formData.plate}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleVehicleSubmit} className="space-y-4">
+              {vehicleErrors.general && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  {vehicleErrors.general}
+                </Alert>
+              )}
+
+              <Input
+                label="Nombre del Propietario"
+                placeholder="Juan Pérez"
+                value={vehicleFormData.owner_name}
+                onChange={(e) =>
+                  setVehicleFormData((prev) => ({ ...prev, owner_name: e.target.value }))
+                }
+                error={vehicleErrors.owner_name}
+              />
+
+              <Input
+                label="Teléfono del Propietario"
+                placeholder="3001234567"
+                value={vehicleFormData.owner_phone}
+                onChange={(e) =>
+                  setVehicleFormData((prev) => ({ ...prev, owner_phone: e.target.value }))
+                }
+                type="tel"
+              />
+
+              <Input
+                label="Email del Propietario"
+                placeholder="juan@email.com"
+                value={vehicleFormData.owner_email}
+                onChange={(e) =>
+                  setVehicleFormData((prev) => ({ ...prev, owner_email: e.target.value }))
+                }
+                type="email"
+              />
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="is_resident"
+                  checked={vehicleFormData.is_resident}
+                  onChange={(e) =>
+                    setVehicleFormData((prev) => ({ ...prev, is_resident: e.target.checked }))
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <label htmlFor="is_resident" className="text-sm text-muted-foreground">
+                  ¿Es residente?
+                </label>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button type="button" variant="outline" className="flex-1" onClick={handleCloseVehicleModal}>
+                  Cancelar
+                </Button>
+                <Button type="submit" className="flex-1" isLoading={isCreatingVehicle}>
+                  Crear y Continuar
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
