@@ -12,6 +12,7 @@ export function FinesTable() {
   const { token, hasRole } = useAuth();
   const [fines, setFines] = useState<FineWithVehicle[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicleMap, setVehicleMap] = useState<Record<number, Vehicle>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'paid'>('all');
@@ -27,21 +28,31 @@ export function FinesTable() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (token) {
-      loadFines();
-      loadVehicles();
-    }
+    if (token) loadData();
   }, [token]);
 
-  const loadVehicles = async () => {
+  const loadData = async () => {
     if (!token) return;
+    setIsLoading(true);
     try {
-      const data = await vehiclesService.getAll(token);
-      setVehicles(data);
+      const [finesData, vehiclesData] = await Promise.all([
+        finesService.getAll(token),
+        vehiclesService.getAll(token),
+      ]);
+      setFines(finesData);
+      setVehicles(vehiclesData);
+      const map: Record<number, Vehicle> = {};
+      vehiclesData.forEach((v) => { map[v.id] = v; });
+      setVehicleMap(map);
     } catch (error) {
-      console.error('Error loading vehicles:', error);
+      console.error('Error loading data:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const getPlate = (fine: FineWithVehicle): string =>
+    fine.vehicle?.plate || vehicleMap[fine.vehicle_id]?.plate || 'N/A';
 
   const handleOpenModal = () => {
     setFormData({
@@ -87,7 +98,7 @@ export function FinesTable() {
         amount: formData.amount,
         photo_url: formData.photo_url || undefined,
       });
-      await loadFines();
+      await loadData();
       handleCloseModal();
     } catch (error) {
       setErrors({
@@ -106,32 +117,20 @@ export function FinesTable() {
     label,
   }));
 
-  const loadFines = async () => {
-    if (!token) return;
-    setIsLoading(true);
-    try {
-      const data = await finesService.getAll(token);
-      setFines(data);
-    } catch (error) {
-      console.error('Error loading fines:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handlePayFine = async (fineId: number) => {
     if (!token) return;
     try {
       await finesService.payFine(token, fineId);
-      await loadFines();
+      await loadData();
     } catch (error) {
       console.error('Error paying fine:', error);
     }
   };
 
   const filteredFines = fines.filter((fine) => {
+    const plate = getPlate(fine);
     const matchesSearch =
-      fine.vehicle?.plate.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      plate.toLowerCase().includes(searchQuery.toLowerCase()) ||
       fine.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = filterStatus === 'all' || fine.status === filterStatus;
     return matchesSearch && matchesStatus;
@@ -244,7 +243,7 @@ export function FinesTable() {
                         {formatDateTime(fine.created_at)}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-mono font-bold">{fine.vehicle?.plate || 'N/A'}</span>
+                        <span className="font-mono font-bold">{getPlate(fine)}</span>
                       </td>
                       <td className="px-4 py-3">
                         {getFineTypeBadge(fine.fine_type)}
