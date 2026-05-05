@@ -2,16 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/components/ui';
-import { parkingService, reportsService } from '@/services';
+import { parkingService, reportsService, vehiclesService } from '@/services';
 import { useAuth } from '@/context';
 import { FileText, Download, Calendar, DollarSign, Clock, Car } from 'lucide-react';
-import type { AuditLog, ParkingSession } from '@/types';
+import type { AuditLog, ParkingSession, Vehicle } from '@/types';
 import { formatDateTime, formatDuration, formatCurrency } from '@/types';
 
 export function ReportsTable() {
   const { token } = useAuth();
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [activeSessions, setActiveSessions] = useState<ParkingSession[]>([]);
+  const [vehicleMap, setVehicleMap] = useState<Record<number, Vehicle>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'audit' | 'active'>('audit');
 
@@ -23,17 +24,30 @@ export function ReportsTable() {
     if (!token) return;
     setIsLoading(true);
     try {
-      const [logs, sessions] = await Promise.all([
+      const [logs, sessions, vehiclesData] = await Promise.all([
         reportsService.getAuditLogs(token),
         parkingService.getActiveSessions(token),
+        vehiclesService.getAll(token),
       ]);
       setAuditLogs(logs);
       setActiveSessions(sessions);
+      const map: Record<number, Vehicle> = {};
+      vehiclesData.forEach((v) => { map[v.id] = v; });
+      setVehicleMap(map);
     } catch (error) {
       console.error('Error loading reports:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getPlate = (session: ParkingSession): string =>
+    session.plate || vehicleMap[session.vehicle_id]?.plate || 'N/A';
+
+  const getVehicleType = (session: ParkingSession): string => {
+    if (session.vehicle_type) return session.vehicle_type;
+    const vehicle = vehicleMap[session.vehicle_id];
+    return vehicle?.vehicle_type || 'N/A';
   };
 
   const handleExportCsv = async () => {
@@ -206,10 +220,10 @@ export function ReportsTable() {
                             {session.ticket_number}
                           </td>
                           <td className="px-4 py-3 text-sm font-bold">
-                            {session.plate}
+                            {getPlate(session)}
                           </td>
                           <td className="px-4 py-3 text-sm capitalize">
-                            {session.vehicle_type}
+                            {getVehicleType(session)}
                           </td>
                           <td className="px-4 py-3 text-sm whitespace-nowrap">
                             {formatDateTime(session.entry_time)}
