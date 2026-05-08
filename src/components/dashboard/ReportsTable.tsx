@@ -79,7 +79,27 @@ export function ReportsTable() {
             <Button
               key={tab.id}
               variant={activeTab === tab.id ? 'primary' : 'outline'}
-              onClick={() => setActiveTab(tab.id as 'audit' | 'active')}
+              onClick={async () => {
+                setActiveTab(tab.id as 'audit' | 'active');
+                if (!token) return;
+                try {
+                  if (tab.id === 'audit') {
+                    const logs = await reportsService.getAuditLogs(token);
+                    setAuditLogs(logs);
+                  } else {
+                    const [sessions, vehiclesData] = await Promise.all([
+                      parkingService.getActiveSessions(token),
+                      vehiclesService.getAll(token),
+                    ]);
+                    setActiveSessions(sessions);
+                    const map: Record<number, Vehicle> = {};
+                    vehiclesData.forEach((v) => { map[v.id] = v; });
+                    setVehicleMap(map);
+                  }
+                } catch (error) {
+                  console.error('Error refreshing tab:', error);
+                }
+              }}
             >
               {tab.icon}
               {tab.label}
