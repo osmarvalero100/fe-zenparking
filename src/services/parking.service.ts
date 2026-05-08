@@ -19,7 +19,7 @@ export const parkingService = {
   },
 
   async updateSpot(token: string, spotId: number, data: Partial<SpotCreate>): Promise<ParkingSpot> {
-    return apiClient.put<ParkingSpot>(`/spots/${spotId}`, data, token);
+    return apiClient.patch<ParkingSpot>(`/spots/${spotId}`, data, token);
   },
 
   async deleteSpot(token: string, spotId: number): Promise<void> {

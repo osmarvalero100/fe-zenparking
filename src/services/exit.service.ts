@@ -19,7 +19,7 @@ export const finesService = {
   },
 
   async update(token: string, fineId: number, data: Partial<FineCreate>): Promise<FineWithVehicle> {
-    return apiClient.patch<FineWithVehicle>(`/fines/${fineId}`, data, token);
+    return apiClient.put<FineWithVehicle>(`/fines/${fineId}`, data, token);
   },
 
   async delete(token: string, fineId: number): Promise<void> {

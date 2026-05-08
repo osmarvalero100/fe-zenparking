@@ -33,7 +33,7 @@ export const ratesService = {
   },
 
   async update(token: string, rateId: number, data: RateUpdate): Promise<Rate> {
-    return apiClient.put<Rate>(`/rates/${rateId}`, data, token);
+    return apiClient.patch<Rate>(`/rates/${rateId}`, data, token);
   },
 
   async delete(token: string, rateId: number): Promise<void> {
