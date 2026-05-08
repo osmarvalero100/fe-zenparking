@@ -19,7 +19,7 @@ export const vehiclesService = {
   },
 
   async update(token: string, vehicleId: number, data: Partial<Vehicle>): Promise<Vehicle> {
-    return apiClient.put<Vehicle>(`/vehicles/${vehicleId}`, data, token);
+    return apiClient.patch<Vehicle>(`/vehicles/${vehicleId}`, data, token);
   },
 
   async delete(token: string, vehicleId: number): Promise<void> {
