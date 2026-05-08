@@ -14,6 +14,14 @@ export const usersService = {
     return apiClient.post<User>('/users/', data, token);
   },
 
+  async update(token: string, userId: number, data: Partial<UserCreate>): Promise<User> {
+    return apiClient.patch<User>(`/users/${userId}`, data, token);
+  },
+
+  async deleteUser(token: string, userId: number): Promise<void> {
+    await apiClient.delete(`/users/${userId}`, token);
+  },
+
   async activate(token: string, userId: number): Promise<void> {
     await apiClient.post(`/users/${userId}/activate`, undefined, token);
   },

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button, Input, Select } from '@/components/ui';
 import { usersService, authService } from '@/services';
 import { useAuth } from '@/context';
-import { Users, Plus, Search, UserCheck, UserX, Shield } from 'lucide-react';
+import { Users, Plus, Search, UserCheck, UserX, Shield, Pencil, Trash2 } from 'lucide-react';
 import type { User, UserRole } from '@/types';
 import { ROLE_LABELS } from '@/types';
 
@@ -37,6 +37,7 @@ export function UsersTable() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<FormData>({
     username: '',
     email: '',
@@ -88,9 +89,35 @@ export function UsersTable() {
     if (!formData.email.trim()) newErrors.email = 'El correo es requerido';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Correo inválido';
     if (!formData.full_name.trim()) newErrors.full_name = 'El nombre es requerido';
-    if (!formData.password || formData.password.length < 6) newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+    if (!editingUser && (!formData.password || formData.password.length < 6))
+      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleOpenModal = (user?: User) => {
+    if (user) {
+      setEditingUser(user);
+      setFormData({
+        username: user.username,
+        email: user.email,
+        full_name: user.full_name,
+        password: '',
+        role: user.role,
+      });
+    } else {
+      setEditingUser(null);
+      setFormData({ username: '', email: '', full_name: '', password: '', role: 'operator' });
+    }
+    setErrors({});
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingUser(null);
+    setErrors({});
+    setFormData({ username: '', email: '', full_name: '', password: '', role: 'operator' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,27 +125,41 @@ export function UsersTable() {
     if (!validate() || !token) return;
 
     try {
-      await usersService.create(token, {
-        username: formData.username,
-        email: formData.email,
-        full_name: formData.full_name,
-        password: formData.password,
-        role: formData.role,
-      });
-      setShowModal(false);
-      setFormData({ username: '', email: '', full_name: '', password: '', role: 'operator' });
+      if (editingUser) {
+        const data: Partial<FormData> = {
+          username: formData.username,
+          email: formData.email,
+          full_name: formData.full_name,
+          role: formData.role,
+        };
+        if (formData.password) data.password = formData.password;
+        await usersService.update(token, editingUser.id, data);
+      } else {
+        await usersService.create(token, {
+          username: formData.username,
+          email: formData.email,
+          full_name: formData.full_name,
+          password: formData.password,
+          role: formData.role,
+        });
+      }
+      handleCloseModal();
       await loadUsers();
     } catch (error) {
       setErrors({
-        general: error instanceof Error ? error.message : 'Error al crear usuario',
+        general: error instanceof Error ? error.message : 'Error al guardar usuario',
       });
     }
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setErrors({});
-    setFormData({ username: '', email: '', full_name: '', password: '', role: 'operator' });
+  const handleDeleteUser = async (userId: number) => {
+    if (!token || !confirm('¿Está seguro de eliminar este usuario?')) return;
+    try {
+      await usersService.deleteUser(token, userId);
+      await loadUsers();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+    }
   };
 
   const filteredUsers = users.filter(
@@ -136,7 +177,7 @@ export function UsersTable() {
             <Users className="h-5 w-5" />
             Gestión de Usuarios
           </CardTitle>
-          <Button onClick={() => setShowModal(true)}>
+          <Button onClick={() => handleOpenModal()}>
             <Plus className="h-4 w-4" />
             Nuevo Usuario
           </Button>
@@ -228,13 +269,21 @@ export function UsersTable() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         {user.id !== currentUser?.id && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleToggleActive(user.id, user.is_active)}
-                          >
-                            {user.is_active ? 'Desactivar' : 'Activar'}
-                          </Button>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleOpenModal(user)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleToggleActive(user.id, user.is_active)}
+                            >
+                              {user.is_active ? 'Desactivar' : 'Activar'}
+                            </Button>
+                            <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleDeleteUser(user.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -249,7 +298,7 @@ export function UsersTable() {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-card rounded-xl border shadow-lg w-full max-w-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Nuevo Usuario</h2>
+            <h2 className="text-xl font-semibold mb-4">{editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               {errors.general && (
@@ -284,7 +333,7 @@ export function UsersTable() {
               />
 
               <Input
-                label="Contraseña"
+                label={editingUser ? 'Contraseña (dejar vacía para mantener)' : 'Contraseña'}
                 type="password"
                 placeholder="******"
                 value={formData.password}
@@ -305,8 +354,8 @@ export function UsersTable() {
                   Cancelar
                 </Button>
                 <Button type="submit">
-                  <Plus className="h-4 w-4" />
-                  Crear Usuario
+                  {editingUser ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                  {editingUser ? 'Actualizar' : 'Crear Usuario'}
                 </Button>
               </div>
             </form>
