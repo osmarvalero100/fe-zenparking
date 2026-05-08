@@ -15,7 +15,15 @@ export const finesService = {
   },
 
   async payFine(token: string, fineId: number): Promise<FineWithVehicle> {
-    return apiClient.post<FineWithVehicle>(`/fines/${fineId}/pay`, undefined, token);
+    return apiClient.patch<FineWithVehicle>(`/fines/${fineId}/pay`, undefined, token);
+  },
+
+  async update(token: string, fineId: number, data: Partial<FineCreate>): Promise<FineWithVehicle> {
+    return apiClient.patch<FineWithVehicle>(`/fines/${fineId}`, data, token);
+  },
+
+  async delete(token: string, fineId: number): Promise<void> {
+    await apiClient.delete(`/fines/${fineId}`, token);
   },
 
   async getPendingFines(token: string): Promise<FineWithVehicle[]> {

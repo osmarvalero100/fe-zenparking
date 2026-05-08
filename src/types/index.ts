@@ -155,6 +155,7 @@ export interface ApiError {
 export interface ExitSession {
   session_id?: number;
   id?: number;
+  vehicle_id?: number;
   plate: string;
   ticket_number: string;
   vehicle_type: VehicleType;

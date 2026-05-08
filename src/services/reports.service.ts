@@ -1,4 +1,4 @@
-import { apiClient } from './api-client';
+import { apiClient, API_BASE_URL } from './api-client';
 import type { AuditLog, Fine } from '@/types';
 
 export const reportsService = {
@@ -10,9 +10,16 @@ export const reportsService = {
   async getDailyMovementsCsv(token: string, date?: string): Promise<string> {
     const params = date ? `?date=${date}` : '';
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || 'https://bk-zenparking.vercel.app/api/v1'}/reports/daily-movements-csv${params}`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      `${API_BASE_URL}/reports/daily-movements-csv${params}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        mode: 'cors',
+      }
     );
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(errorText || `Error ${response.status}: No se pudo descargar el reporte`);
+    }
     return response.text();
   },
 

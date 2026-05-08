@@ -23,6 +23,7 @@ export function ExitForm() {
   const { refreshData } = useAlerts();
   const [isLoading, setIsLoading] = useState(false);
   const [session, setSession] = useState<ExitSession | null>(null);
+  const [pendingFines, setPendingFines] = useState<FineWithVehicle[]>([]);
   const [showPayment, setShowPayment] = useState(false);
   const [formData, setFormData] = useState<ExitFormData>({ ticketOrPlate: '' });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -58,12 +59,14 @@ export function ExitForm() {
       const sessionByPlate = await exitService.searchByPlate(token, searchTerm);
       if (sessionByPlate) {
         setSession(sessionByPlate);
+        await loadPendingFines(token, sessionByPlate);
         return;
       }
 
       const sessionByTicket = await exitService.searchByTicket(token, searchTerm);
       if (sessionByTicket) {
         setSession(sessionByTicket);
+        await loadPendingFines(token, sessionByTicket);
         return;
       }
 
@@ -79,8 +82,20 @@ export function ExitForm() {
 
   const calculateTotal = (): number => {
     const parkingFee = session?.total_amount || 0;
-    const finesTotal = session?.pending_fines?.reduce((sum, fine) => sum + fine.amount, 0) || 0;
+    const finesTotal = pendingFines.reduce((sum, f) => sum + f.amount, 0);
     return parkingFee + finesTotal;
+  };
+
+  const loadPendingFines = async (token: string, session: ExitSession) => {
+    try {
+      const fines = await finesService.getPendingFines(token);
+      const vehicleFines = fines.filter(
+        (f) => f.vehicle_id === session.vehicle_id || f.vehicle?.plate === session.plate
+      );
+      setPendingFines(vehicleFines);
+    } catch {
+      setPendingFines([]);
+    }
   };
 
   const handleProcessExit = async () => {
@@ -89,8 +104,8 @@ export function ExitForm() {
     setIsLoading(true);
 
     try {
-      if (session.pending_fines && session.pending_fines.length > 0) {
-        for (const fine of session.pending_fines) {
+      if (pendingFines.length > 0) {
+        for (const fine of pendingFines) {
           await finesService.payFine(token, fine.id);
         }
       }
@@ -117,6 +132,7 @@ export function ExitForm() {
 
   const handleNewExit = () => {
     setSession(null);
+    setPendingFines([]);
     setShowPayment(false);
     setShowSuccess(false);
     setShowFinesModal(false);
@@ -277,7 +293,7 @@ export function ExitForm() {
                 </span>
               </div>
 
-              {session.pending_fines && session.pending_fines.length > 0 && (
+              {pendingFines.length > 0 && (
                 <>
                   <button
                     type="button"
@@ -286,13 +302,13 @@ export function ExitForm() {
                   >
                     <span className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" />
-                      Multas Pendientes ({session.pending_fines.length}):
+                      Multas Pendientes ({pendingFines.length}):
                     </span>
                     <span>
-                      {formatCurrency(session.pending_fines.reduce((sum, f) => sum + f.amount, 0))}
+                      {formatCurrency(pendingFines.reduce((sum, f) => sum + f.amount, 0))}
                     </span>
                   </button>
-                  {session.pending_fines.map((fine, idx) => (
+                  {pendingFines.map((fine, idx) => (
                     <div key={idx} className="flex justify-between text-sm bg-warning/10 p-2 rounded">
                       <span className="truncate mr-2">{fine.description || 'Multa'}</span>
                       <span className="font-medium whitespace-nowrap">{formatCurrency(fine.amount)}</span>
@@ -358,7 +374,7 @@ export function ExitForm() {
         </div>
       )}
 
-      {showFinesModal && session?.pending_fines && (
+      {showFinesModal && pendingFines.length > 0 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowFinesModal(false)}>
           <div className="bg-card rounded-xl border shadow-lg w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -366,7 +382,7 @@ export function ExitForm() {
               Multas Pendientes
             </h3>
             <div className="space-y-2 mb-4">
-              {session.pending_fines.map((fine, idx) => (
+              {pendingFines.map((fine, idx) => (
                 <div key={idx} className="p-3 bg-muted/50 rounded-lg">
                   <p className="text-sm font-medium">{fine.description || 'Multa'}</p>
                   <p className="text-sm text-muted-foreground">{formatCurrency(fine.amount)}</p>

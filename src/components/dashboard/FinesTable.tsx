@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button, Input, Select, Alert, SearchableSelect } from '@/components/ui';
 import { finesService, vehiclesService } from '@/services';
 import { useAuth } from '@/context';
-import { FileText, Plus, Search, AlertTriangle, Camera, CheckCircle, XCircle } from 'lucide-react';
+import { FileText, Plus, Search, AlertTriangle, Camera, CheckCircle, XCircle, Pencil, Trash2, DollarSign } from 'lucide-react';
 import type { FineWithVehicle, FineType, Vehicle } from '@/types';
 import { FINE_TYPE_LABELS, STATUS_LABELS, formatCurrency, formatDateTime } from '@/types';
 
@@ -17,6 +17,7 @@ export function FinesTable() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'paid'>('all');
   const [showModal, setShowModal] = useState(false);
+  const [editingFine, setEditingFine] = useState<FineWithVehicle | null>(null);
   const [selectedFine, setSelectedFine] = useState<FineWithVehicle | null>(null);
   const [formData, setFormData] = useState({
     vehicle_id: '',
@@ -54,26 +55,39 @@ export function FinesTable() {
   const getPlate = (fine: FineWithVehicle): string =>
     fine.vehicle?.plate || vehicleMap[fine.vehicle_id]?.plate || 'N/A';
 
-  const handleOpenModal = () => {
-    setFormData({
-      vehicle_id: '',
-      fine_type: 'mal_parking',
-      amount: 0,
-      description: '',
-      photo_url: '',
-    });
+  const handleOpenModal = (fine?: FineWithVehicle) => {
+    if (fine) {
+      setEditingFine(fine);
+      setFormData({
+        vehicle_id: String(fine.vehicle_id),
+        fine_type: fine.fine_type,
+        amount: fine.amount,
+        description: fine.description || '',
+        photo_url: fine.photo_url || '',
+      });
+    } else {
+      setEditingFine(null);
+      setFormData({
+        vehicle_id: '',
+        fine_type: 'mal_parking',
+        amount: 0,
+        description: '',
+        photo_url: '',
+      });
+    }
     setErrors({});
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
+    setEditingFine(null);
     setErrors({});
   };
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!formData.vehicle_id) {
+    if (!formData.vehicle_id && !editingFine) {
       newErrors.vehicle_id = 'Seleccione un vehículo';
     }
     if (formData.amount <= 0) {
@@ -91,18 +105,27 @@ export function FinesTable() {
     if (!validate() || !token) return;
 
     try {
-      await finesService.create(token, {
-        vehicle_id: parseInt(formData.vehicle_id),
-        fine_type: formData.fine_type,
-        description: formData.description,
-        amount: formData.amount,
-        photo_url: formData.photo_url || undefined,
-      });
+      if (editingFine) {
+        await finesService.update(token, editingFine.id, {
+          fine_type: formData.fine_type,
+          description: formData.description,
+          amount: formData.amount,
+          photo_url: formData.photo_url || undefined,
+        });
+      } else {
+        await finesService.create(token, {
+          vehicle_id: parseInt(formData.vehicle_id),
+          fine_type: formData.fine_type,
+          description: formData.description,
+          amount: formData.amount,
+          photo_url: formData.photo_url || undefined,
+        });
+      }
       await loadData();
       handleCloseModal();
     } catch (error) {
       setErrors({
-        general: error instanceof Error ? error.message : 'Error al registrar multa',
+        general: error instanceof Error ? error.message : 'Error al guardar multa',
       });
     }
   };
@@ -124,6 +147,16 @@ export function FinesTable() {
       await loadData();
     } catch (error) {
       console.error('Error paying fine:', error);
+    }
+  };
+
+  const handleDeleteFine = async (fineId: number) => {
+    if (!token || !confirm('¿Está seguro de eliminar esta multa?')) return;
+    try {
+      await finesService.delete(token, fineId);
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting fine:', error);
     }
   };
 
@@ -154,7 +187,7 @@ export function FinesTable() {
             Gestión de Multas
           </CardTitle>
           {hasRole(['admin', 'operator']) && (
-            <Button onClick={handleOpenModal}>
+            <Button onClick={() => handleOpenModal()}>
               <Plus className="h-4 w-4" />
               Registrar Multa
             </Button>
@@ -274,14 +307,24 @@ export function FinesTable() {
                               <Camera className="h-4 w-4" />
                             </Button>
                           )}
-                          {fine.status === 'pending' && hasRole(['admin', 'operator']) && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handlePayFine(fine.id)}
-                            >
-                              <CheckCircle className="h-4 w-4 text-success" />
-                            </Button>
+                          {hasRole(['admin', 'operator']) && (
+                            <>
+                              <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleOpenModal(fine)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              {fine.status === 'pending' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handlePayFine(fine.id)}
+                                >
+                                  <DollarSign className="h-4 w-4 text-success" />
+                                </Button>
+                              )}
+                              <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleDeleteFine(fine.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </>
                           )}
                         </div>
                       </td>
@@ -318,7 +361,7 @@ export function FinesTable() {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-card rounded-xl border shadow-lg w-full max-w-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Registrar Nueva Multa</h2>
+            <h2 className="text-xl font-semibold mb-4">{editingFine ? 'Editar Multa' : 'Registrar Nueva Multa'}</h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               {errors.general && (
@@ -328,14 +371,21 @@ export function FinesTable() {
                 </Alert>
               )}
 
-              <SearchableSelect
+              {!editingFine && <SearchableSelect
                 label="Vehículo"
                 options={vehicleOptions}
                 value={formData.vehicle_id}
                 onChange={(value) => setFormData({ ...formData, vehicle_id: value })}
                 error={errors.vehicle_id}
                 placeholder="Buscar vehículo por placa o propietario..."
-              />
+              />}
+              {editingFine && (
+                <Input
+                  label="Vehículo"
+                  value={getPlate(editingFine)}
+                  disabled
+                />
+              )}
 
               <Select
                 label="Tipo de Multa"
@@ -373,8 +423,8 @@ export function FinesTable() {
                   Cancelar
                 </Button>
                 <Button type="submit">
-                  <Plus className="h-4 w-4" />
-                  Registrar
+                  {editingFine ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                  {editingFine ? 'Actualizar' : 'Registrar'}
                 </Button>
               </div>
             </form>
