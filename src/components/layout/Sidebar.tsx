@@ -29,8 +29,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
-  { label: 'Ingreso Vehículos', href: '/dashboard/entry', icon: <Car className="h-5 w-5" /> },
-  { label: 'Salida Vehículos', href: '/dashboard/exit', icon: <ArrowRightFromLine className="h-5 w-5" /> },
+  { label: 'Ingreso Vehículos', href: '/dashboard/entry', icon: <Car className="h-5 w-5" />, roles: ['admin', 'operator'] },
+  { label: 'Salida Vehículos', href: '/dashboard/exit', icon: <ArrowRightFromLine className="h-5 w-5" />, roles: ['admin', 'operator'] },
   { label: 'Mapa del Parqueadero', href: '/dashboard/map', icon: <MapPin className="h-5 w-5" /> },
   { label: 'Vehículos', href: '/dashboard/vehicles', icon: <CarFront className="h-5 w-5" /> },
   { label: 'Celdas', href: '/dashboard/spots', icon: <MapPin className="h-5 w-5" />, roles: ['admin'] },

@@ -25,9 +25,9 @@ export function ReportsTable() {
     setIsLoading(true);
     try {
       const [logs, sessions, vehiclesData] = await Promise.all([
-        reportsService.getAuditLogs(token),
-        parkingService.getActiveSessions(token),
-        vehiclesService.getAll(token),
+        reportsService.getAuditLogs(token).catch(() => [] as AuditLog[]),
+        parkingService.getActiveSessions(token).catch(() => [] as ParkingSession[]),
+        vehiclesService.getAll(token).catch(() => [] as Vehicle[]),
       ]);
       setAuditLogs(logs);
       setActiveSessions(sessions);
