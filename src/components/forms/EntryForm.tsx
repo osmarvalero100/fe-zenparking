@@ -315,6 +315,14 @@ export function EntryForm() {
           </Alert>
         )}
 
+        <Select
+          label="Tipo de Vehículo"
+          options={vehicleTypeOptions}
+          value={formData.vehicle_type}
+          onChange={handleVehicleTypeChange}
+          error={errors.vehicle_type}
+        />
+
         <Input
           label="Placa del Vehículo"
           placeholder="ABC123"
@@ -323,14 +331,6 @@ export function EntryForm() {
           error={errors.plate}
           className="text-center text-lg font-mono uppercase tracking-wider"
           maxLength={6}
-        />
-
-        <Select
-          label="Tipo de Vehículo"
-          options={vehicleTypeOptions}
-          value={formData.vehicle_type}
-          onChange={handleVehicleTypeChange}
-          error={errors.vehicle_type}
         />
 
         <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>

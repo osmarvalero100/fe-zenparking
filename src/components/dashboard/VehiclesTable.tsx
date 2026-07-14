@@ -329,6 +329,13 @@ export function VehiclesTable() {
                 </Alert>
               )}
 
+              <Select
+                label="Tipo de Vehículo"
+                options={vehicleTypeOptions}
+                value={formData.vehicle_type}
+                onChange={(e) => setFormData({ ...formData, vehicle_type: e.target.value as VehicleType })}
+              />
+
               <Input
                 label="Placa"
                 placeholder="ABC123"
@@ -337,13 +344,6 @@ export function VehiclesTable() {
                 error={errors.plate}
                 className="uppercase"
                 disabled={!!editingVehicle}
-              />
-
-              <Select
-                label="Tipo de Vehículo"
-                options={vehicleTypeOptions}
-                value={formData.vehicle_type}
-                onChange={(e) => setFormData({ ...formData, vehicle_type: e.target.value as VehicleType })}
               />
 
               <Input
